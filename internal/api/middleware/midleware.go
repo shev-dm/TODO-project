@@ -1,34 +1,35 @@
 package middleware
 
 import (
-	"github.com/shev-dm/TODO-project/internal/hasher"
 	"net/http"
-	"os"
+
+	"github.com/shev-dm/TODO-project/internal/hasher"
 )
 
-func Authentication(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		password := os.Getenv("TODO_PASSWORD")
-		if len(password) > 0 {
-			var jw string
-			cookie, err := r.Cookie("token")
-			if err == nil {
-				jw = cookie.Value
-			}
-			var valid bool
-			signedToken, err := hasher.GenerateToken(password)
-			if err != nil {
-				return
-			}
+func Authentication(password string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if len(password) > 0 {
+				var jw string
+				cookie, err := r.Cookie("token")
+				if err == nil {
+					jw = cookie.Value
+				}
+				var valid bool
+				signedToken, err := hasher.GenerateToken(password)
+				if err != nil {
+					return
+				}
 
-			if signedToken == jw {
-				valid = true
+				if signedToken == jw {
+					valid = true
+				}
+				if !valid {
+					http.Error(w, "Authentication required", http.StatusUnauthorized)
+					return
+				}
 			}
-			if !valid {
-				http.Error(w, "authentification required", http.StatusUnauthorized)
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }

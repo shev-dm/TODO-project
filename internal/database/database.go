@@ -2,12 +2,15 @@ package database
 
 import (
 	"database/sql"
-	"github.com/shev-dm/TODO-project/internal/models"
 	"log"
-	_ "modernc.org/sqlite"
 	"os"
 	"time"
+
+	"github.com/shev-dm/TODO-project/internal/models"
+	_ "modernc.org/sqlite"
 )
+
+const maxTasksPerPage = 10
 
 type Storage struct {
 	db *sql.DB
@@ -25,7 +28,7 @@ func (s *Storage) Close() error {
 	return s.db.Close()
 }
 
-func (s *Storage) Init(appPath string) {
+func (s *Storage) Init(appPath string) error {
 	_, err := os.Stat(appPath)
 
 	var install bool
@@ -33,7 +36,7 @@ func (s *Storage) Init(appPath string) {
 		install = true
 	}
 	if !install {
-		return
+		return nil
 	}
 
 	_, err = s.db.Exec("CREATE TABLE scheduler " +
@@ -43,13 +46,14 @@ func (s *Storage) Init(appPath string) {
 		"comment TEXT," +
 		"repeat varchar(128))")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	_, err = s.db.Exec("CREATE INDEX idx_date ON scheduler (date)")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func (s *Storage) Add(input models.Task) (int64, error) {
@@ -69,7 +73,7 @@ func (s *Storage) Add(input models.Task) (int64, error) {
 	return id, nil
 }
 
-func (s *Storage) GetAndSearchTasks(search string) (models.Tasks, error) {
+func (s *Storage) SearchTasks(search string) (models.Tasks, error) {
 	tasks := models.Tasks{Tasks: make([]models.Task, 0, 20)}
 	var row *sql.Rows
 	var err error
@@ -77,21 +81,24 @@ func (s *Storage) GetAndSearchTasks(search string) (models.Tasks, error) {
 	if search != "" {
 		dateTime, err := time.Parse("02.01.2006", search)
 		if err != nil {
-			row, err = s.db.Query("SELECT * FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date ASC limit 20",
-				sql.Named("search", "%"+search+"%"))
+			row, err = s.db.Query("SELECT id,date,title,comment,repeat FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date ASC limit :limit",
+				sql.Named("search", "%"+search+"%"),
+				sql.Named("limit", maxTasksPerPage))
 			if err != nil {
 				return tasks, err
 			}
 		} else {
 			dateTimeString := dateTime.Format("20060102")
-			row, err = s.db.Query("SELECT * FROM scheduler WHERE date LIKE :search ORDER BY date ASC limit 20",
-				sql.Named("search", "%"+dateTimeString+"%"))
+			row, err = s.db.Query("SELECT id,date,title,comment,repeat FROM scheduler WHERE date LIKE :search ORDER BY date ASC limit :limit",
+				sql.Named("search", "%"+dateTimeString+"%"),
+				sql.Named("limit", maxTasksPerPage))
 			if err != nil {
 				return tasks, err
 			}
 		}
 	} else {
-		row, err = s.db.Query("SELECT * from scheduler order by date ASC limit 20")
+		row, err = s.db.Query("SELECT id,date,title,comment,repeat from scheduler order by date ASC limit :limit",
+			sql.Named("limit", maxTasksPerPage))
 		if err != nil {
 			return tasks, err
 		}
@@ -107,13 +114,17 @@ func (s *Storage) GetAndSearchTasks(search string) (models.Tasks, error) {
 		}
 		tasks.Tasks = append(tasks.Tasks, task)
 	}
+	if err = row.Err(); err != nil {
+		return tasks, err
+	}
+
 	return tasks, nil
 }
 
-func (s *Storage) GetById(taskId int) (models.Task, error) {
+func (s *Storage) Get(taskId int) (models.Task, error) {
 	task := models.Task{}
 
-	row := s.db.QueryRow("SELECT * from scheduler where id = :id",
+	row := s.db.QueryRow("SELECT id,date,title,comment,repeat from scheduler where id = :id",
 		sql.Named("id", taskId))
 	err := row.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil || task.Id == "" {
@@ -122,7 +133,7 @@ func (s *Storage) GetById(taskId int) (models.Task, error) {
 	return task, nil
 }
 
-func (s *Storage) SetTasks(task models.Task, taskId int) (int64, error) {
+func (s *Storage) Update(task models.Task, taskId int) (int64, error) {
 
 	result, err := s.db.Exec("UPDATE scheduler "+
 		"SET date = :date, title = :title, comment = :comment, repeat = :repeat "+

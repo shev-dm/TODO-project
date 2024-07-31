@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/shev-dm/TODO-project/internal/database"
-	"github.com/shev-dm/TODO-project/internal/hasher"
-	"github.com/shev-dm/TODO-project/internal/models"
-	"github.com/shev-dm/TODO-project/internal/parser"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/shev-dm/TODO-project/internal/database"
+	"github.com/shev-dm/TODO-project/internal/hasher"
+	"github.com/shev-dm/TODO-project/internal/models"
+	"github.com/shev-dm/TODO-project/internal/parser"
 )
 
 type Handler struct {
@@ -33,7 +33,7 @@ func (h *Handler) GetNextDate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(nextDate))
+	_, _ = w.Write([]byte(nextDate))
 }
 
 func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +47,10 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -58,9 +59,10 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -70,9 +72,10 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -80,11 +83,12 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 
 	response, err := json.Marshal(input)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
@@ -95,22 +99,24 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	search := r.FormValue("search")
 
-	tasks, err := h.Store.GetAndSearchTasks(search)
+	tasks, err := h.Store.SearchTasks(search)
 	if err != nil {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 	response, err := json.Marshal(tasks)
 	if err != nil {
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -123,30 +129,32 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "неверный формат id задачи"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
-	task, err := h.Store.GetById(taskId)
+	task, err := h.Store.Get(taskId)
 	if err != nil {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
 	response, err := json.Marshal(task)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 
 }
 
@@ -160,9 +168,10 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "невозможно распарсить данные"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -171,10 +180,10 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 	taskId, err := strconv.Atoi(task.Id)
@@ -182,20 +191,22 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "неверный формат id задачи"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
-	rowsAffected, err := h.Store.SetTasks(task, taskId)
+	rowsAffected, err := h.Store.Update(task, taskId)
 	if err != nil {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -204,19 +215,21 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "данного id нет в БД"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
 	// Если программа дошла до этого места, значит ошибок нет, возвращаем пустую errorAnswer
 	response, err := json.Marshal(errorAnswer)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 
 }
 
@@ -231,20 +244,22 @@ func (h *Handler) PostTaskDone(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "неверный формат id задачи"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
-	task, err := h.Store.GetById(taskId)
+	task, err := h.Store.Get(taskId)
 	if err != nil {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -254,9 +269,10 @@ func (h *Handler) PostTaskDone(w http.ResponseWriter, r *http.Request) {
 			errorAnswer.Err = err.Error()
 			response, err := json.Marshal(errorAnswer)
 			if err != nil {
-				log.Fatal(err)
+				http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+				return
 			}
-			w.Write(response)
+			_, _ = w.Write(response)
 			return
 		}
 	} else {
@@ -265,31 +281,33 @@ func (h *Handler) PostTaskDone(w http.ResponseWriter, r *http.Request) {
 			errorAnswer.Err = err.Error()
 			response, err := json.Marshal(errorAnswer)
 			if err != nil {
-				log.Fatal(err)
+				http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+				return
 			}
-			w.Write(response)
+			_, _ = w.Write(response)
 			return
 		}
 		task.Date = nextDate
 
-		_, err = h.Store.SetTasks(task, taskId)
+		_, err = h.Store.Update(task, taskId)
 		if err != nil {
 			errorAnswer.Err = err.Error()
 			response, err := json.Marshal(errorAnswer)
 			if err != nil {
-				log.Fatal(err)
+				http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+				return
 			}
-			w.Write(response)
+			_, _ = w.Write(response)
 			return
 		}
 	}
 	response, err := json.Marshal(errorAnswer)
 	if err != nil {
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
@@ -303,9 +321,10 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "неверный формат id задачи"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 	err = h.Store.Delete(taskId)
@@ -313,19 +332,21 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = err.Error()
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
 	response, err := json.Marshal(errorAnswer)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, _ = w.Write(response)
 
 }
 
@@ -339,9 +360,10 @@ func (h *Handler) PostSignin(w http.ResponseWriter, r *http.Request) {
 		errorAnswer.Err = "невозможно распарсить данные"
 		response, err := json.Marshal(errorAnswer)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 	todoPassword := os.Getenv("TODO_PASSWORD")
@@ -355,11 +377,12 @@ func (h *Handler) PostSignin(w http.ResponseWriter, r *http.Request) {
 		token := models.Token{Token: signedToken}
 		response, err := json.Marshal(token)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+		_, _ = w.Write(response)
 		return
 	}
 
@@ -367,9 +390,10 @@ func (h *Handler) PostSignin(w http.ResponseWriter, r *http.Request) {
 
 	response, err := json.Marshal(errorAnswer)
 	if err != nil {
+		http.Error(w, "ошибка преобразования данных", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(response)
+	_, _ = w.Write(response)
 
 }

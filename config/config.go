@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	Port   string
-	DBFile string
+	Port     string
+	DBFile   string
+	Password string
 }
 
 func NewConfig() *Config {
@@ -27,4 +28,7 @@ func (c *Config) init() {
 		log.Fatal("не указана переменная окружения TODO_PORT")
 	}
 	c.Port = ":" + port
+
+	password := os.Getenv("TODO_PASSWORD")
+	c.Password = password
 }

@@ -2,13 +2,16 @@ package parser
 
 import (
 	"errors"
-	"github.com/shev-dm/TODO-project/internal/models"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/shev-dm/TODO-project/internal/models"
 )
+
+const timeLayout = "20060102"
 
 type Repeat struct {
 	Rules  string
@@ -74,7 +77,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return "", err
 	}
 
-	dateTime, err := time.Parse("20060102", date)
+	dateTime, err := time.Parse(timeLayout, date)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +103,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 				break
 			}
 		}
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(timeLayout), nil
 	case "y":
 		if rules.months != nil || rules.days != nil {
 			return "", errors.New("неверный формат данных")
@@ -113,7 +116,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 				break
 			}
 		}
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(timeLayout), nil
 	case "w":
 		if rules.months != nil || rules.days == nil || len(rules.days) > 7 {
 			return "", errors.New("неверный формат данных")
@@ -140,7 +143,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		}
 		nextDayInt := slices.Min(allNextDaysRulesW)
 		dateTime = now.AddDate(0, 0, nextDayInt)
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(timeLayout), nil
 	case "m":
 		if rules.months == nil {
 			var startYear int
@@ -188,7 +191,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 					break
 				}
 			}
-			return dateTime.Format("20060102"), nil
+			return dateTime.Format(timeLayout), nil
 		}
 		var startYear int
 		if now.Before(dateTime) {
@@ -232,7 +235,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 				break
 			}
 		}
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(timeLayout), nil
 	default:
 		return "", errors.New("неверный формат данных")
 	}
@@ -250,9 +253,9 @@ func CheckRulesAddOrUpdate(input models.Task) (models.Task, models.Err) {
 
 	if input.Date == "" {
 		dateTime = time.Now()
-		input.Date = dateTime.Format("20060102")
+		input.Date = dateTime.Format(timeLayout)
 	} else {
-		dateTime, err = time.Parse("20060102", input.Date)
+		dateTime, err = time.Parse(timeLayout, input.Date)
 		if err != nil {
 			errorAnswer.Err = "ошибка в формате даты"
 			return input, errorAnswer
@@ -270,7 +273,7 @@ func CheckRulesAddOrUpdate(input models.Task) (models.Task, models.Err) {
 		}
 	} else {
 		if dateTime.Before(time.Now().Truncate(24 * time.Hour)) {
-			input.Date = time.Now().Format("20060102")
+			input.Date = time.Now().Format(timeLayout)
 		}
 	}
 	return input, errorAnswer

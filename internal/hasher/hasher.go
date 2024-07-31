@@ -3,6 +3,7 @@ package hasher
 import (
 	"crypto/sha512"
 	"encoding/hex"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
