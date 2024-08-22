@@ -66,7 +66,6 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//id, err := database.Add(input)
 	id, err := h.Store.Add(input)
 	if err != nil {
 		errorAnswer.Err = err.Error()

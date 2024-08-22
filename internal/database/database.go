@@ -81,7 +81,7 @@ func (s *Storage) SearchTasks(search string) (models.Tasks, error) {
 	if search != "" {
 		dateTime, err := time.Parse("02.01.2006", search)
 		if err != nil {
-			row, err = s.db.Query("SELECT id,date,title,comment,repeat FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date ASC limit :limit",
+			row, err = s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date ASC limit :limit",
 				sql.Named("search", "%"+search+"%"),
 				sql.Named("limit", maxTasksPerPage))
 			if err != nil {
@@ -89,7 +89,7 @@ func (s *Storage) SearchTasks(search string) (models.Tasks, error) {
 			}
 		} else {
 			dateTimeString := dateTime.Format("20060102")
-			row, err = s.db.Query("SELECT id,date,title,comment,repeat FROM scheduler WHERE date LIKE :search ORDER BY date ASC limit :limit",
+			row, err = s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date LIKE :search ORDER BY date ASC limit :limit",
 				sql.Named("search", "%"+dateTimeString+"%"),
 				sql.Named("limit", maxTasksPerPage))
 			if err != nil {
@@ -97,7 +97,7 @@ func (s *Storage) SearchTasks(search string) (models.Tasks, error) {
 			}
 		}
 	} else {
-		row, err = s.db.Query("SELECT id,date,title,comment,repeat from scheduler order by date ASC limit :limit",
+		row, err = s.db.Query("SELECT id, date, title, comment, repeat from scheduler order by date ASC limit :limit",
 			sql.Named("limit", maxTasksPerPage))
 		if err != nil {
 			return tasks, err
@@ -124,7 +124,7 @@ func (s *Storage) SearchTasks(search string) (models.Tasks, error) {
 func (s *Storage) Get(taskId int) (models.Task, error) {
 	task := models.Task{}
 
-	row := s.db.QueryRow("SELECT id,date,title,comment,repeat from scheduler where id = :id",
+	row := s.db.QueryRow("SELECT id, date, title, comment, repeat from scheduler where id = :id",
 		sql.Named("id", taskId))
 	err := row.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil || task.Id == "" {
